@@ -1,0 +1,187 @@
+<html>
+<head>
+<title>Reaper-Web-Wwise</title>
+  <meta charset="utf-8" />
+  <link rel="icon" href="./favicon.ico" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Web site created using create-react-app" />
+  <link rel="apple-touch-icon" href="./logo192.png" />
+  <link rel="manifest" href="./manifest.json" />
+  <title>NSM Format</title>
+  <link href="./static/css/main.905e9ebc.chunk.css" rel="stylesheet">
+<style type="text/css">
+
+</style>
+
+<script src="main.js"></script>
+
+<script type="text/javascript">
+
+var lyrictrack=1;
+var lyriclines=8;
+
+var playpos="";
+var lyricstr="";
+var lyrics=[];
+var maxlines=0;
+var maxbeats=0;
+
+var config_lines=100;
+
+function parse_lyrics(tok) {
+  lyrics=[];
+  maxlines=0;
+  maxbeats=0;
+  var i;
+  for (i=2; i < tok.length-1; i += 2) {
+    var re=/^(\d+)\.(\d+)\.\d+$/.exec(tok[i]);
+    if (re && re.length == 3) {
+      var m=re[1];
+      var b=re[2];
+      if (!lyrics[m]) lyrics[m]=[];
+      if (!lyrics[m][b]) lyrics[m][b]=tok[i+1];
+      else lyrics[m][b] += " "+tok[i+1];
+      maxlines=m;
+      if (b > maxbeats) maxbeats=b;
+    }
+  }
+}
+
+function update_display() {
+  var html=""
+
+  if (maxbeats == 0) {
+    html="<h2 class=\"connect\">Successful Link To Reaper</h2><p>";
+  }
+  else {
+    var curm=1, curb=1;
+    var re=/^(\d+)\.(\d+)\.\d+$/.exec(playpos)
+    if (re && re.length == 3) {
+      curm=re[1];
+      curb=re[2];
+    }
+
+    var lines=0;
+    var m=Math.max(curm-lyriclines/4, 1);
+    for (lines=0; lines < lyriclines; ++lines, ++m) {
+      html += "<div class=\"measure\">"+m+"</div>";
+      html += "<div class=\"text\">";
+      var b;
+      for (b=1; b <= maxbeats; ++b) {
+        if (b > 1) html += " ";
+        if (m == curm && b == curb) html += "<b>";
+        if (lyrics[m] && lyrics[m][b]) 
+          html += simple_unescape(lyrics[m][b]).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        else html += "&#x2219;";
+        if (m == curm && b == curb) html += "</b>";
+      }
+      html += "</div>";
+    }
+   }
+
+  document.getElementById("lyrics").innerHTML=html;
+}
+
+function wwr_onreply(results) {
+  var ar=results.split("\n");
+  for (var i=0; i < ar.length; ++i) {
+    var tok=ar[i].split("\t");
+    if (tok && tok.length > 0) {
+      switch (tok[0]) {
+        case "TRANSPORT":
+          if (tok.length > 5) {
+            if (playpos !== tok[5]) {
+              playpos=tok[5];
+              update_display();
+            }
+          }
+        break;
+        case "LYRICS":
+          if (tok.length >= 2) {
+            if (lyrictrack == tok[1] && lyricstr !== ar[i]) {
+              lyricstr=ar[i];
+              parse_lyrics(tok);
+              update_display();
+            }
+          }
+        break;
+      }
+    }
+  }
+}
+
+wwr_req_recur("TRANSPORT",20);
+wwr_req_recur("LYRICS/" + lyrictrack,2000);
+wwr_start();
+
+function selectReascript(){
+  var nSel = document.getElementById("reaScreaptTest");
+    var index = nSel.selectedIndex; // 选中索引
+    var text = nSel.options[index].text; // 选中文本
+		var value= nSel.options[index].value;
+    return value;  
+}
+
+function runReascript(value){
+    wwr_req_recur(value)
+}
+
+function updateOrientation() {
+  var a=document.getElementById("viewport-meta");
+  if (a) a.setAttribute("content",
+    "width=320, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, initial-scale=1.0");
+}
+
+function init()
+{
+  updateOrientation();
+  
+}
+
+function lyrics_config() {
+  var tr=parseInt(prompt("Display MIDI lyrics from track:", lyrictrack));
+  if (tr > 0 && tr != lyrictrack)
+  {
+    wwr_req_recur_cancel("LYRICS/"+lyrictrack);
+    wwr_req_recur("LYRICS/"+tr,2000);
+    lyrictrack=tr;
+    lyricstr="";
+    lyrics=[];
+    update_display();
+  }
+}
+
+
+</script>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" id="viewport-meta" content="" />
+</head>
+<body onLoad="init()">
+  
+<div id="lyrics" onclick="init()">initializing...
+
+  
+</div>
+<noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>!function (e) { function r(r) { for (var n, a, i = r[0], c = r[1], l = r[2], s = 0, p = []; s < i.length; s++)a = i[s], Object.prototype.hasOwnProperty.call(o, a) && o[a] && p.push(o[a][0]), o[a] = 0; for (n in c) Object.prototype.hasOwnProperty.call(c, n) && (e[n] = c[n]); for (f && f(r); p.length;)p.shift()(); return u.push.apply(u, l || []), t() } function t() { for (var e, r = 0; r < u.length; r++) { for (var t = u[r], n = !0, i = 1; i < t.length; i++) { var c = t[i]; 0 !== o[c] && (n = !1) } n && (u.splice(r--, 1), e = a(a.s = t[0])) } return e } var n = {}, o = { 1: 0 }, u = []; function a(r) { if (n[r]) return n[r].exports; var t = n[r] = { i: r, l: !1, exports: {} }; return e[r].call(t.exports, t, t.exports, a), t.l = !0, t.exports } a.e = function (e) { var r = [], t = o[e]; if (0 !== t) if (t) r.push(t[2]); else { var n = new Promise((function (r, n) { t = o[e] = [r, n] })); r.push(t[2] = n); var u, i = document.createElement("script"); i.charset = "utf-8", i.timeout = 120, a.nc && i.setAttribute("nonce", a.nc), i.src = function (e) { return a.p + "static/js/" + ({}[e] || e) + "." + { 3: "a7cc63d1" }[e] + ".chunk.js" }(e); var c = new Error; u = function (r) { i.onerror = i.onload = null, clearTimeout(l); var t = o[e]; if (0 !== t) { if (t) { var n = r && ("load" === r.type ? "missing" : r.type), u = r && r.target && r.target.src; c.message = "Loading chunk " + e + " failed.\n(" + n + ": " + u + ")", c.name = "ChunkLoadError", c.type = n, c.request = u, t[1](c) } o[e] = void 0 } }; var l = setTimeout((function () { u({ type: "timeout", target: i }) }), 12e4); i.onerror = i.onload = u, document.head.appendChild(i) } return Promise.all(r) }, a.m = e, a.c = n, a.d = function (e, r, t) { a.o(e, r) || Object.defineProperty(e, r, { enumerable: !0, get: t }) }, a.r = function (e) { "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e, "__esModule", { value: !0 }) }, a.t = function (e, r) { if (1 & r && (e = a(e)), 8 & r) return e; if (4 & r && "object" == typeof e && e && e.__esModule) return e; var t = Object.create(null); if (a.r(t), Object.defineProperty(t, "default", { enumerable: !0, value: e }), 2 & r && "string" != typeof e) for (var n in e) a.d(t, n, function (r) { return e[r] }.bind(null, n)); return t }, a.n = function (e) { var r = e && e.__esModule ? function () { return e.default } : function () { return e }; return a.d(r, "a", r), r }, a.o = function (e, r) { return Object.prototype.hasOwnProperty.call(e, r) }, a.p = "./", a.oe = function (e) { throw console.error(e), e }; var i = this.webpackJsonpnsm = this.webpackJsonpnsm || [], c = i.push.bind(i); i.push = r, i = i.slice(); for (var l = 0; l < i.length; l++)r(i[l]); var f = c; t() }([])</script>
+    <script src="./static/js/2.c22c5eba.chunk.js"></script>
+    <script src="./static/js/main.0b5b85f6.chunk.js"></script>
+    <script src="./static/js/main.0b5b85f6.chunk.js"></script>
+    <div class="p1"> 
+    <br/>
+    <br/>
+    <button type="button" class="button2" onClick="runReascript(selectReascript())">runReascript</button>
+    <select id="reaScreaptTest"class="select" onChange="selectReascript()">
+      <option value="">选择Reascript脚本</option>
+      <option value="_RSfc419379da3c8e35eeb01fd19731ccf4cc0a8fad">Giant_Export_ItemList</option>
+      <option value="46000">Insert track from template</option>
+      <option value="Japanese(JP)">Japanese(JP)</option>
+    </select>
+    <br/>
+    <br/>
+  </div>
+</body>
+</html>
